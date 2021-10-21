@@ -1,49 +1,69 @@
-import requests
-import smtplib
-from flask import Flask, render_template, request
+from flask import Flask, render_template, redirect, url_for
+from flask_bootstrap import Bootstrap
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired, URL
+from flask_ckeditor import CKEditor, CKEditorField
+
+
+## Delete this code:
+# import requests
+# posts = requests.get("https://api.npoint.io/43644ec4f0013682fc0d").json()
+
 app = Flask(__name__)
+app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+ckeditor = CKEditor(app)
+Bootstrap(app)
 
-response = requests.get(url="https://api.npoint.io/88c2c1f644ef334058be").json()
-MY_EMAIL = "xiiixxx@yahoo.com"
-MY_PASSWORD = "wrxjixdcxhrthkjl"
-connection = smtplib.SMTP("smtp.mail.yahoo.com", timeout=120)
-connection.starttls()
-connection.login(user=MY_EMAIL, password=MY_PASSWORD)
+##CONNECT TO DB
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-@app.route("/")
-def index():
-    return render_template("index.html", blog_posts=response)
+##CONFIGURE TABLE
+class BlogPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(250), unique=True, nullable=False)
+    subtitle = db.Column(db.String(250), nullable=False)
+    date = db.Column(db.String(250), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    author = db.Column(db.String(250), nullable=False)
+    img_url = db.Column(db.String(250), nullable=False)
+
+
+##WTForm
+class CreatePostForm(FlaskForm):
+    title = StringField("Blog Post Title", validators=[DataRequired()])
+    subtitle = StringField("Subtitle", validators=[DataRequired()])
+    author = StringField("Your Name", validators=[DataRequired()])
+    img_url = StringField("Blog Image URL", validators=[DataRequired(), URL()])
+    body = StringField("Blog Content", validators=[DataRequired()])
+    submit = SubmitField("Submit Post")
+
+
+@app.route('/')
+def get_all_posts():
+    return render_template("index.html", all_posts=posts)
+
+
+@app.route("/post/<int:index>")
+def show_post(index):
+    requested_post = None
+    for blog_post in posts:
+        if blog_post["id"] == index:
+            requested_post = blog_post
+    return render_template("post.html", post=requested_post)
+
 
 @app.route("/about")
 def about():
     return render_template("about.html")
 
-@app.route("/contact", methods=["GET", "POST"])
-def receive_data():
-    if request.method == "GET":
-        title_text = "Contact Me"
-        return render_template("contact.html", title=title_text)
-    else:
-        name = request.form["name"]
-        email = request.form["email"]
-        phone = request.form["phone"]
-        message = request.form["message"]
-        connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs="xlvi@mm.st",
-            msg=f"Subject:New email from website\n\nMessage received from {name}:\n \
-            {message}\nContact details: {email}  |  {phone}"
-        )
-        connection.close()
-        title_text = "Your message has been sent."
-        return render_template("contact.html", title=title_text)
 
-@app.route("/post/<int:num>")
-def post_page(num):
-    post_id = num - 1
-    blog_page = response[post_id]
-    return render_template("post.html", page=blog_page)
-
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
