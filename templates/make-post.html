@@ -1,7 +1,12 @@
 {% extends 'bootstrap/base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block content %}
 {% include "header.html" %}
+
+<!-- CKEditor is a full rich text editor -->
+{{ ckeditor.load(pkg_type="standard") }}
+
   <!-- Page Header -->
   <header class="masthead" style="background-image: url('{{ url_for('static', filename='img/edit-bg.jpg')}}')">
     <div class="overlay"></div>
@@ -20,8 +25,12 @@
   <div class="container">
     <div class="row">
       <div class="col-lg-8 col-md-10 mx-auto">
-        
-          <!-- This is where the form will go -->
+
+          <form action="", method="post">
+            {{ wtf.quick_form(form, novalidate=True, button_map={'submit': 'primary'}) }}
+          </form>
+        {{ ckeditor.load() }}
+        {{ ckeditor.config(name='body') }}
 
       </div>
     </div>
