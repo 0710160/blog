@@ -70,24 +70,44 @@ def get_all_posts():
 
 @app.route("/post/<int:index>")
 def show_post(index):
-    #requested_post = None
-    #for blog_post in posts:
-    #    if blog_post["id"] == index:
-    #        requested_post = blog_post
     requested_post = BlogPost.query.get(index)
     return render_template("post.html", post=requested_post)
 
 
-@app.route("/edit/<int:post_id>")
+@app.route("/edit/<int:post_id>", methods=["GET", "POST"])
 def edit_post(post_id):
-    pass
+    post = BlogPost.query.get(post_id)
+    if request.method == "GET":
+        edit_or_new = "Edit"
+        edit_form = CreatePostForm(
+            title=post.title,
+            subtitle=post.subtitle,
+            img_url=post.img_url,
+            author=post.author,
+            body=post.body
+        )
+        return render_template("make-post.html", post_id=post_id, form=edit_form, edit_or_new=edit_or_new)
+    if request.method == "POST":
+        ckeditor_output = request.form.get('body')
+        post = BlogPost(
+            id=post.id,
+            title=request.form['title'],
+            subtitle=request.form['subtitle'],
+            date=post.date,
+            author=request.form['author'],
+            img_url=request.form['img_url'],
+            body=bleach_html(ckeditor_output)
+        )
+        db.session.commit()
+        return render_template("post.html", post=post)
 
 
 @app.route("/new_post", methods=["GET", "POST"])
 def new_post():
     if request.method == "GET":
         form = CreatePostForm()
-        return render_template("make-post.html", form=form)
+        edit_or_new = "New"
+        return render_template("make-post.html", form=form, edit_or_new=edit_or_new)
     if request.method == "POST":
         ckeditor_output = request.form.get('body')
         new_blog_post = BlogPost(
@@ -104,9 +124,13 @@ def new_post():
         return render_template("index.html", all_posts=posts)
 
 
-@app.route("/about")
-def about():
-    return render_template("about.html")
+@app.route("/delete/<post_id>")
+def delete(post_id):
+    post = BlogPost.query.get(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    posts = BlogPost.query.all()
+    return render_template("index.html", all_posts=posts)
 
 
 @app.route("/contact")
